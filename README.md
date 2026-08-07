@@ -217,5 +217,3 @@ npm run build
 - How to keep business rules in a small reusable function
 - How deterministic seed and benchmark data make results reproducible
 - How to test real application functions with Node's built-in tools
-
-For an interview-ready walkthrough and practice questions, see [`INTERVIEW_GUIDE.md`](INTERVIEW_GUIDE.md).
