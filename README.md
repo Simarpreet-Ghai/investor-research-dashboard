@@ -8,7 +8,7 @@ A small full-stack portfolio project for searching, reviewing, and qualifying **
 
 | Dashboard | Qualification result |
 | --- | --- |
-| _Add `docs/dashboard.png` here_ | _Add `docs/qualification-result.png` here_ |
+| ... | ... |
 
 ## Tech stack
 
