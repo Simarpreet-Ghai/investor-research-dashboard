@@ -1,66 +1,118 @@
 # Investor Research & Qualification Dashboard
 
-A small full-stack portfolio project for searching, reviewing, and qualifying **simulated** investor profiles. The app uses a transparent rule-based check—not machine learning—to compare a company's sector, region, and desired investment with an investor's mandate.
+I built this project to get more comfortable connecting a React frontend, a Node.js backend, and PostgreSQL in one full-stack application.
 
-> All profiles, names, email addresses, criteria, and benchmark cases are fictional. This project is not affiliated with Bristol Capital or any real investment or investor-relations firm.
+The dashboard works with 500 simulated investor profiles and lets users search, filter, review, update, and qualify investors using a small set of transparent rules.
+
+The qualification logic is rule-based, not machine learning, so every result can be explained.
+
+> All investor profiles, names, emails, criteria, and benchmark cases are fictional. This project is not affiliated with Bristol Capital or any real investment or investor-relations firm.
 
 ## Screenshots
 
-| Dashboard | Qualification result |
+| Dashboard | Qualification Result |
 | --- | --- |
 | ... | ... |
 
-## Tech stack
+## What It Does
 
-- Frontend: JavaScript, React, Vite, `fetch()`, normal CSS
-- Backend: Node.js, Express, REST APIs
-- Database: PostgreSQL, plain SQL, `pg`
-- Testing: Node's built-in test runner
-- Version control: Git and GitHub
+The app lets a user:
 
-## Features
+- browse 500 deterministic simulated investor profiles
+- search by investor name
+- filter by sector and region
+- view investment ranges and contact information
+- update an investor's pipeline status
+- compare a company against an investor's criteria
+- flag borderline qualification cases for manual review
 
-- Browse 500 deterministic simulated investor profiles
-- Search by investor name and filter by sector or region
-- Review sector, region, investment range, email, and pipeline status
-- Update an investor's status
-- Evaluate a company against three simple qualification rules
-- Run a reproducible 100-case benchmark with manual-review flags
-
-## Architecture
+## How It Works
 
 ```text
-React (browser)
+React frontend
       |
-      | fetch() / JSON
+      | fetch() + JSON
       v
-Express REST API
+Node.js / Express API
       |
-      | parameterized SQL through pg
+      | parameterized SQL
       v
 PostgreSQL
 ```
 
-The React client never connects directly to PostgreSQL. It sends HTTP requests to Express, Express runs SQL queries, and Express sends JSON responses back to React.
+The React frontend never talks directly to PostgreSQL.
 
-## Project structure
+Instead, React sends HTTP requests to Express, Express handles the application logic and SQL queries, and the results are returned to the frontend as JSON.
+
+## Tech Used
+
+- **React + Vite** — frontend interface and development setup
+- **JavaScript** — frontend and backend application logic
+- **Node.js + Express** — REST API
+- **PostgreSQL** — stores the simulated investor profiles
+- **SQL + pg** — database queries and PostgreSQL access
+- **Node's built-in test runner** — checks qualification rules and API behaviour
+- **Git/GitHub** — version control
+
+## Main Features
+
+### Search and Filtering
+
+Investor profiles can be searched or filtered using:
 
 ```text
-client/                 React and CSS frontend
+name
+sector
+region
+```
+
+The backend uses parameterized PostgreSQL queries such as `$1` and `$2` instead of inserting user input directly into SQL.
+
+### Qualification Rules
+
+I kept the qualification logic intentionally simple so the result is easy to understand.
+
+An investor is `QUALIFIED` only when:
+
+1. the company sector matches the investor's sector
+2. the company region matches the investor's region
+3. the requested investment falls within the investor's minimum and maximum range
+
+Sector and region comparisons ignore capitalization, and the investment boundaries are included.
+
+The API also returns the result of each individual check so the frontend can show why an investor qualified or did not qualify.
+
+### REST API
+
+The backend currently has four main operations:
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/investors` | Search and list investors |
+| GET | `/api/investors/:id` | Get one investor |
+| POST | `/api/investors/:id/qualify` | Run the qualification rules |
+| PUT | `/api/investors/:id` | Update investor information |
+
+## Project Structure
+
+```text
+client/                 React frontend
+
 server/
-  benchmark/            deterministic 100-case fixture
-  scripts/              database seed and benchmark runner
-  src/                  Express app, database pool, and qualification rules
-  test/                 basic tests using node:test
-  schema.sql             investors table
-.env.example            sample local configuration
-INTERVIEW_GUIDE.md      plain-language project walkthrough
+├── benchmark/          100 deterministic benchmark cases
+├── scripts/            database seed + benchmark scripts
+├── src/                Express API, PostgreSQL connection, qualification logic
+├── test/               rule and API tests
+└── schema.sql          investor table
+
+.env.example
+INTERVIEW_GUIDE.md
 README.md
 ```
 
-## Database schema
+## Database
 
-The project uses one main table:
+The project uses one main PostgreSQL table:
 
 ```sql
 investors (
@@ -75,99 +127,98 @@ investors (
 )
 ```
 
-`id` uniquely identifies each row. Check constraints restrict sectors and statuses and prevent invalid investment ranges.
+I also added database checks for valid sectors, statuses, and investment ranges so obviously invalid records are not stored.
 
-## Four REST operations
+## 100-Case Benchmark
 
-| Method and path | Purpose |
-| --- | --- |
-| `GET /api/investors` | List profiles; accepts optional `search`, `sector`, and `region` query parameters |
-| `GET /api/investors/:id` | Retrieve one profile by ID |
-| `POST /api/investors/:id/qualify` | Run the three qualification rules for one profile |
-| `PUT /api/investors/:id` | Update allowed profile fields, including status |
+I created 100 deterministic cases to check how the qualification rules behave.
 
-All database values are passed as PostgreSQL parameters such as `$1` and `$2`. User input is not joined directly into SQL values.
-
-## Qualification rules
-
-The result is `QUALIFIED` only when all three checks pass:
-
-1. Company sector exactly matches the investor sector, ignoring capitalization.
-2. Company region exactly matches the investor region, ignoring capitalization.
-3. Desired investment is between the investor's minimum and maximum, including both boundaries.
-
-If any check fails, the result is `NOT QUALIFIED`. The response also contains each individual check so the UI can explain the decision.
-
-## 100-case benchmark
-
-`server/benchmark/benchmarkCases.js` deterministically creates exactly 100 fixtures. Each fixture contains an investor, company criteria, and an expected `QUALIFIED` or `NOT QUALIFIED` outcome. The evaluation script loops through every fixture, calls the same real `qualifyInvestor()` function used by the API, compares actual with expected, and calculates the percentages from the counts.
-
-Current calculated result:
+Each case contains:
 
 ```text
-Total cases: 100
-Matched expected outcome: 93/100 (93.0%)
-Flagged for manual review: 7/100 (7.0%)
+investor
+company criteria
+expected result
 ```
 
-The seven mismatches are intentionally understandable borderline cases:
+The benchmark calls the same `qualifyInvestor()` function used by the actual API rather than using separate testing logic.
 
-- Cases 14 and 58: a human expectation allows a nearby or additional region, while the rule requires an exact region.
-- Cases 41 and 86: a human expectation allows a related sector, while the rule requires the same sector label.
-- Case 27: the request is $25,000 above the investor's maximum.
-- Case 72: the request is $25,000 below the investor's minimum.
-- Case 99: all stored rules pass, but the expected label represents a qualitative preference that is not stored in the simple model.
+Current result:
 
-The script prints all seven cases with expected result, actual result, and explanation. A mismatch is a prompt for `MANUAL REVIEW`; it is not silently changed to make the benchmark pass.
+```text
+100 total cases
 
-## Local setup
+93/100 matched the expected result
+7/100 flagged for manual review
+```
+
+The seven manual-review cases are intentionally borderline situations, such as:
+
+- closely related but non-identical sectors
+- nearby or additional regions
+- investment amounts just outside the allowed range
+- qualitative preferences that are not represented in the stored rules
+
+I kept those cases visible instead of changing the expected result just to make the benchmark say 100%.
+
+## How to Run It on Another Computer
 
 ### 1. Requirements
 
-- Node.js 20 or newer
+You will need:
+
+- Node.js 20+
 - npm
-- PostgreSQL running locally
+- PostgreSQL
+- Git
 
-### 2. Create the PostgreSQL database
+### 2. Clone the repository
 
-Open `psql` or a PostgreSQL GUI such as pgAdmin and create an empty database:
+```bash
+git clone <repository-url>
+cd <repository-folder>
+```
+
+### 3. Create the PostgreSQL database
+
+Open `psql` and run:
 
 ```sql
 CREATE DATABASE investor_dashboard;
 ```
 
-The seed script creates the `investors` table, so you do not need to run `schema.sql` separately.
+The seed script creates the `investors` table automatically.
 
-### 3. Configure the connection
+### 4. Configure the database connection
 
-From the repository root:
+From the project root:
 
 ```bash
 cp .env.example server/.env
 ```
 
-Open `server/.env` and replace `your_password` with your local PostgreSQL password. Adjust the username, host, port, or database name if your PostgreSQL setup differs.
+Then update `server/.env` with your own PostgreSQL information:
 
 ```env
 DATABASE_URL=postgresql://postgres:your_password@localhost:5432/investor_dashboard
 PORT=3001
 ```
 
-### 4. Install dependencies
+### 5. Install the dependencies
 
 ```bash
 npm run install:all
 ```
 
-### 5. Seed exactly 500 investors
+### 6. Seed the database
 
 ```bash
 npm run seed
 ```
 
-The deterministic script clears the existing `investors` rows and inserts exactly 500 simulated profiles across exactly six sectors. Running it again produces the same data.
+This creates the same 500 simulated investor profiles each time.
 
-### 6. Start the backend
+### 7. Start the backend
 
 In one terminal:
 
@@ -175,45 +226,83 @@ In one terminal:
 npm run dev:server
 ```
 
-The API runs at `http://localhost:3001`.
+The API runs on:
 
-### 7. Start the frontend
+```text
+http://localhost:3001
+```
 
-In a second terminal:
+### 8. Start the frontend
+
+In another terminal:
 
 ```bash
 npm run dev:client
 ```
 
-Open the local URL printed by Vite, normally `http://localhost:5173`.
+Vite normally runs the frontend on:
 
-## Evaluation and tests
+```text
+http://localhost:5173
+```
 
-Run the deterministic benchmark without a database connection:
+## Testing and Evaluation
+
+Run the 100-case qualification benchmark:
 
 ```bash
 npm run evaluate
 ```
 
-Run the basic rule and API tests:
+Run the rule and API tests:
 
 ```bash
 npm test
 ```
 
-Build the frontend for a final check:
+Check that the React frontend builds successfully:
 
 ```bash
 npm run build
 ```
 
-## What I learned
+## What I Learned
 
-- How React state drives filters, selected profiles, forms, and UI updates
-- How `useEffect` loads API data when filters change
-- How a browser calls REST routes with `fetch()` and JSON
-- How Express validates requests and talks to PostgreSQL using `pg`
-- How primary keys identify records and parameterized SQL protects queries
-- How to keep business rules in a small reusable function
-- How deterministic seed and benchmark data make results reproducible
-- How to test real application functions with Node's built-in tools
+This project helped me understand how the different parts of a full-stack application connect together.
+
+Some of the main things I practiced were:
+
+- connecting React to an Express REST API
+- using `fetch()` and JSON between the frontend and backend
+- working with PostgreSQL from Node.js using `pg`
+- writing parameterized SQL queries
+- keeping database access and qualification logic separate
+- using React state and `useEffect` for filtering and API data
+- creating deterministic data so results can be reproduced
+- testing the same application functions used by the real API
+
+It also helped me see why it is useful to keep business rules small and easy to explain instead of hiding them inside routes or frontend components.
+
+## Current Limitations
+
+Right now:
+
+- all investor profiles are simulated
+- qualification only considers sector, region, and investment size
+- related sectors or nearby regions are not automatically treated as matches
+- qualitative investor preferences are not represented
+- the project is meant for software-development practice, not real investment recommendations
+
+I kept the first version focused on understanding the full frontend → API → database flow instead of adding a large number of features.
+
+## Possible Next Steps
+
+Things I could add later:
+
+- more advanced filtering
+- pagination
+- authentication
+- more detailed qualification rules
+- broader automated API testing
+- Docker for easier local setup
+- deployment
