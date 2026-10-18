@@ -8,12 +8,6 @@ The qualification logic is rule-based, not machine learning, so every result can
 
 > All investor profiles, names, emails, criteria, and benchmark cases are fictional. This project is not affiliated with Bristol Capital or any real investment or investor-relations firm.
 
-## Screenshots
-
-| Dashboard | Qualification Result |
-| --- | --- |
-| ... | ... |
-
 ## What It Does
 
 The app lets a user:
